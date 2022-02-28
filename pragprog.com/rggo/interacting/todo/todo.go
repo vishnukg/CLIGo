@@ -1,7 +1,11 @@
 package todo
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -35,4 +39,38 @@ func (l *List) Complete(i int) error {
 	ls[i-1].Done = true
 	ls[i-1].CompletedAt = time.Now()
 	return nil
+}
+
+func (l *List) Delete(i int) error {
+	if i <= 0 || i > len(*l) {
+		return fmt.Errorf("Item %d does not exist", i)
+	}
+
+	*l = append((*l)[:i-1], (*l)[i:]...)
+	return nil
+}
+
+func (l *List) Save(filename string) error {
+	js, err := json.Marshal(l)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filename, js, 0644)
+}
+
+func (l *List) Get(filename string) error {
+	file, err := ioutil.ReadFile(filename)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	if len(file) == 0 {
+		return nil
+	}
+
+	return json.Unmarshal(file, l)
 }
